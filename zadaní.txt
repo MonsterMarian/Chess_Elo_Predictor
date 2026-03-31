@@ -1,0 +1,24 @@
+Tady je co jsem našel — a hlavně co přesně splňuje zadání:
+
+✅ Nejlepší základ pro tvoje zadání
+ytmimi/Chess.com-Public-Game-Data-API
+Program stahuje data přímo z Chess.com public API a pro každou hru sbírá: username, rating, národnost, barvu (bílá/černá), výsledek (výhra/prohra), první tah, varianta, počet tahů, datum. Výstupem je soubor chess_data.csv. GitHub
+➡️ Toto je tvůj sběr dat — reálná data, z API, s doložitelným zdrojem. ✔️
+
+🧠 Co na to nastavit jako ML model
+Ideální klasifikační model: "Předpověď výsledku partie" (výhra / prohra / remíza)
+Atributy (splňuje požadavek 5+ atributů):
+
+Rating hráče
+Barva (bílá / černá)
+Počet tahů
+První tah (opening)
+Časová kontrola (bullet / blitz / rapid)
+Výsledek → label pro klasifikaci
+
+1500+ záznamů? Pokud máš na chess.com 500+ her, stáhneš data i od jiných hráčů přes API — splnitelné snadno.
+
+📋 Jak to splňuje všechna kritéria zadání
+KritériumJak je splněnoReálná data vlastnoručně sesbíranáChess.com API → CSVMin. 1500 záznamů, 5+ atributůStáhneš hry více hráčůDoložení původu datAPI endpoint je veřejný, dá se zaznamenatPředzpracování datČištění, škálování ratingu, encoding openingML model v Google ColabSklearn klasifikátor (Random Forest / XGBoost)Spustitelné na školním PC bez IDEPython + python main.py v terminálu
+
+Chceš, abych ti navrhl celou architekturu projektu — co přesně stahovat, jak data čistit a jaký model použít? Nebo rovnou pomůžu s kódem?

@@ -1,0 +1,11 @@
+chess.com
+pandas
+scikit-learn
+matplotlib
+requests
+numpy
+tqdm
+sqlalchemy
+flask
+aiohttp
+lightgbm
