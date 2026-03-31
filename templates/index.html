@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Milestone | Advanced Elo Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --card: #18181b;
+            --border: #27272a;
+            --input-bg: #09090b;
+            --primary: #6366f1;
+            --primary-light: rgba(99,102,241,0.15);
+            --accent: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --text: #f4f4f5;
+            --muted: #71717a;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 48px 20px;
+        }
+        .page { width:100%; max-width:920px; display:flex; flex-direction:column; gap:28px; }
+
+        /* Header */
+        header { text-align:center; }
+        h1 {
+            font-family:'Outfit',sans-serif;
+            font-size:2.6rem; font-weight:800;
+            background: linear-gradient(to right,#818cf8,#c084fc);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        }
+        .sub { color:var(--muted); margin-top:6px; font-size:1rem; }
+
+        /* Card */
+        .card {
+            background:var(--card);
+            border:1px solid var(--border);
+            border-radius:20px;
+            padding:28px;
+        }
+
+        /* Search grid */
+        .search-grid {
+            display:grid;
+            grid-template-columns:2fr 1fr 1fr;
+            gap:14px;
+            margin-bottom:18px;
+        }
+        .adv-grid {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:14px;
+            padding-top:18px;
+            border-top:1px solid var(--border);
+        }
+        @media(max-width:680px){
+            .search-grid,.adv-grid{ grid-template-columns:1fr; }
+        }
+        .field label {
+            display:block;
+            font-size:0.75rem; font-weight:600;
+            text-transform:uppercase; letter-spacing:.06em;
+            color:var(--muted); margin-bottom:6px;
+        }
+        input, select {
+            width:100%; padding:12px 14px;
+            background:var(--input-bg); border:1px solid var(--border);
+            border-radius:10px; color:var(--text); font-size:0.95rem;
+            transition:border-color .2s;
+        }
+        select option { background:var(--card); color:var(--text); }
+        input:focus, select:focus {
+            outline:none; border-color:var(--primary);
+            box-shadow:0 0 0 3px rgba(99,102,241,.15);
+        }
+        .btn {
+            width:100%; padding:15px;
+            background:var(--primary); border:none; border-radius:10px;
+            color:#fff; font-size:1rem; font-weight:600;
+            cursor:pointer; margin-top:18px;
+            transition:background .2s, transform .15s;
+        }
+        .btn:hover { background:#4f46e5; transform:translateY(-1px); }
+
+        /* Player header */
+        .player-header {
+            display:flex; align-items:center; gap:16px;
+            padding-bottom:20px; margin-bottom:20px;
+            border-bottom:1px solid var(--border);
+        }
+        .player-name { font-size:1.4rem; font-weight:700; }
+        .player-sub { color:var(--muted); font-size:0.9rem; margin-top:2px; }
+        .badge {
+            display:inline-block;
+            padding:4px 10px; border-radius:6px;
+            font-size:0.78rem; font-weight:600;
+        }
+        .badge-high   { background:rgba(16,185,129,.15); color:#34d399; }
+        .badge-mid    { background:rgba(245,158,11,.15);  color:#fbbf24; }
+        .badge-low    { background:rgba(239,68,68,.15);   color:#f87171; }
+        .badge-none   { background:rgba(113,113,122,.15); color:var(--muted); }
+
+        /* Stats grid */
+        .stats-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+            gap:16px;
+        }
+        .stat { 
+            background:var(--bg);
+            border:1px solid var(--border);
+            border-radius:14px; padding:20px;
+        }
+        .stat-label { color:var(--muted); font-size:0.8rem; font-weight:500; }
+        .stat-value { font-size:1.9rem; font-weight:700; margin-top:4px; }
+        .stat-sub { color:var(--muted); font-size:0.75rem; margin-top:3px; }
+
+        /* Milestones */
+        .milestones { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        @media(max-width:600px){ .milestones { grid-template-columns:1fr; } }
+        .milestone {
+            background:var(--bg); border:1px solid var(--border);
+            border-radius:14px; padding:22px;
+        }
+        .milestone.primary { border-color:var(--primary); background:var(--primary-light); }
+        .m-target { font-size:1.3rem; font-weight:700; color:var(--primary); }
+        .m-time   { font-size:2rem; font-weight:800; margin:6px 0; }
+        .m-label  { color:var(--muted); font-size:0.8rem; }
+
+        /* Percentile bar (#9) */
+        .percentile-section { margin-top:8px; }
+        .pct-bar-wrap {
+            background:var(--border); border-radius:99px; height:8px;
+            margin:8px 0; overflow:hidden;
+        }
+        .pct-bar { height:100%; border-radius:99px;
+            background:linear-gradient(to right,#6366f1,#a855f7);
+            transition:width .8s ease; }
+        .pct-label { font-size:0.85rem; color:var(--muted); }
+
+        /* Confidence */
+        .confidence-row { display:flex; align-items:center; gap:10px; margin-top:10px; }
+        .conf-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+        /* Loading / Error */
+        .loading { display:none; text-align:center; padding:44px 0; }
+        .spinner {
+            width:36px; height:36px;
+            border:3px solid var(--border); border-top-color:var(--primary);
+            border-radius:50%; animation:spin .8s linear infinite;
+            margin:0 auto 12px;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .error {
+            display:none;
+            background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2);
+            color:#f87171; padding:14px 18px; border-radius:10px; font-size:.9rem;
+        }
+        .results { display:none; flex-direction:column; gap:20px;
+            animation:fadeIn .4s ease-out; }
+        @keyframes fadeIn {
+            from { opacity:0; transform:translateY(8px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header>
+        <h1>Chess Milestone</h1>
+        <p class="sub">Data-driven analysis powered by thousands of similar player trajectories.</p>
+    </header>
+
+    <!-- Search -->
+    <div class="card">
+        <div class="search-grid">
+            <div class="field">
+                <label>Player Username</label>
+                <input id="username" type="text" placeholder="e.g. GothamChess">
+            </div>
+            <div class="field">
+                <label>Time Control</label>
+                <select id="type">
+                    <option value="blitz">Blitz</option>
+                    <option value="rapid" selected>Rapid</option>
+                    <option value="bullet">Bullet</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Predict after (days)</label>
+                <input id="target_days" type="number" value="30" min="1" max="90">
+            </div>
+        </div>
+        <div class="field" style="margin-top:20px;">
+            <label>Custom Target Elo (optional)</label>
+            <input id="target_elo" type="number" placeholder="e.g. 1800" min="600" max="2000">
+        </div>
+        <button class="btn" onclick="predict()">Analyze Player</button>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p style="color:var(--muted)">Analyzing player trajectory against database...</p>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <div class="results" id="results">
+
+        <!-- Player header -->
+        <div class="card">
+            <div class="player-header">
+                <div>
+                    <div class="player-name" id="r-username">—</div>
+                    <div class="player-sub" id="r-sub">—</div>
+                </div>
+                <span class="badge" id="r-conf-badge">—</span>
+            </div>
+
+            <!-- Key stats row -->
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-label">Current Rating</div>
+                    <div class="stat-value" id="r-current">—</div>
+                    <div class="stat-sub" id="r-type-label">—</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label" id="r-days-label">Predicted in 30 days</div>
+                    <div class="stat-value" id="r-predicted">—</div>
+                    <div class="stat-sub" id="r-std">± — Elo uncertainty</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Better than</div>
+                    <div class="stat-value" id="r-percentile">—</div>
+                    <div class="stat-sub">of all active players</div>
+                </div>
+            </div>
+
+            <!-- Percentile bar (#9) -->
+            <div class="percentile-section" id="pct-section" style="display:none">
+                <div class="pct-label" id="pct-text"></div>
+                <div class="pct-bar-wrap"><div class="pct-bar" id="pct-bar" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <!-- Milestones -->
+        <div class="milestones">
+            <div class="milestone primary">
+                <div class="m-label">Next Milestone</div>
+                <div class="m-target" id="m1-target">—</div>
+                <div class="m-time" id="m1-time">—</div>
+                <div class="m-label" id="m1-msg">—</div>
+            </div>
+            <div class="milestone" id="m2-card">
+                <div class="m-label">Following Milestone</div>
+                <div class="m-target" id="m2-target">—</div>
+                <div class="m-time" id="m2-time">—</div>
+                <div class="m-label" id="m2-msg">—</div>
+            </div>
+        </div>
+
+        <!-- Custom target -->
+        <div class="card" id="custom-card" style="display:none">
+            <div class="stat-label" style="margin-bottom:8px">Custom Target</div>
+            <div style="display:flex;align-items:baseline;gap:12px">
+                <div class="stat-value" id="custom-time">—</div>
+                <div style="color:var(--muted);font-size:.9rem" id="custom-msg">—</div>
+            </div>
+        </div>
+
+    </div><!-- /results -->
+</div>
+
+<script>
+const confidenceColors = { 'Vysoká':'#34d399', 'Střední':'#fbbf24', 'Nízká':'#f87171' };
+const confidenceBadgeClass = { 'Vysoká':'badge-high', 'Střední':'badge-mid', 'Nízká':'badge-low' };
+
+function fmtMonths(m) {
+    if (m === null || m === undefined) return '—';
+    if (m === 0) return 'Již dosaženo';
+    return m === 1 ? '1 měsíc' : `${m} měsíců`;
+}
+
+async function predict() {
+    const username   = document.getElementById('username').value.trim();
+    const type       = document.getElementById('type').value;
+    const targetDays = document.getElementById('target_days').value;
+    const targetElo  = document.getElementById('target_elo').value;
+
+    if (!username) return;
+
+    ['results','error'].forEach(id => document.getElementById(id).style.display='none');
+    document.getElementById('loading').style.display='block';
+
+    try {
+        const res = await fetch('/api/predict', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ username, type, target_days:targetDays, target_elo:targetElo||null })
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'Server error');
+
+        // Player header
+        document.getElementById('r-username').textContent = d.username;
+        document.getElementById('r-sub').textContent = `${d.type.charAt(0).toUpperCase()+d.type.slice(1)} Rating`;
+
+        const badge = document.getElementById('r-conf-badge');
+        badge.textContent = `Jistota: ${d.confidence}`;
+        badge.className = 'badge ' + (confidenceBadgeClass[d.confidence] || 'badge-none');
+
+        // Stats
+        document.getElementById('r-current').textContent = d.current_elo;
+        document.getElementById('r-type-label').textContent = d.type + ' rating';
+        document.getElementById('r-days-label').textContent = `Predikce za ${d.target_days} dní`;
+        document.getElementById('r-predicted').textContent = d.predicted_elo;
+        document.getElementById('r-std').textContent = `± ${d.pred_std} Elo nejistota`;
+
+        // Percentile (#9)
+        if (d.percentile != null) {
+            const pctVal = Math.round(d.percentile);
+            document.getElementById('r-percentile').textContent = `Top ${100 - pctVal}%`;
+            document.getElementById('pct-text').textContent =
+                `Tento účet je lepší než ${pctVal}% všech aktivních hráčů tohoto time controlu`;
+            document.getElementById('pct-bar').style.width = pctVal + '%';
+            document.getElementById('pct-section').style.display = 'block';
+        } else {
+            document.getElementById('r-percentile').textContent = 'N/A';
+            document.getElementById('pct-section').style.display = 'none';
+        }
+
+        // Milestones
+        const m1 = d.milestone_1 || { target: '?', months: null, std: null, msg: 'Data chybí' };
+        const m2 = d.milestone_2 || { target: '?', months: null, std: null, msg: 'Data chybí' };
+        
+        document.getElementById('m1-target').textContent = m1.target + ' Elo';
+        document.getElementById('m1-time').textContent = fmtMonths(m1.months);
+        document.getElementById('m1-msg').textContent = m1.msg !== 'ok' ? m1.msg : `± ${m1.std||'?'} měs.`;
+
+        document.getElementById('m2-target').textContent = m2.target + ' Elo';
+        document.getElementById('m2-time').textContent = fmtMonths(m2.months);
+        document.getElementById('m2-msg').textContent = m2.msg !== 'ok' ? m2.msg : `± ${m2.std||'?'} měs.`;
+
+        // Custom
+        const cc = document.getElementById('custom-card');
+        if (d.custom) {
+            cc.style.display = 'block';
+            document.getElementById('custom-time').textContent =
+                d.custom.months ? `${d.custom.months} měsíců` : 'Nedosažitelné';
+            const targ = d.custom.target !== undefined ? d.custom.target : '?';
+            document.getElementById('custom-msg').textContent =
+                d.custom.months ? `do dosažení ${targ} Elo  (± ${d.custom.std||'?'} měs.)` : (d.custom.msg || 'Neznámý stav');
+        } else {
+            cc.style.display = 'none';
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        const resultDiv = document.getElementById('results');
+        resultDiv.style.display = 'flex';
+
+
+    } catch(err) {
+        document.getElementById('loading').style.display = 'none';
+        const e = document.getElementById('error');
+        e.textContent = err.message;
+        e.style.display = 'block';
+    }
+}
+
+// Enter key support
+document.addEventListener('keydown', e => { if (e.key === 'Enter') predict(); });
+</script>
+</body>
+</html>
